@@ -10,6 +10,32 @@ import {
 } from 'lucide-react';
 
 /**
+ * GLOBAL STYLES
+ */
+const GlobalStyles = () => (
+  <style>{`
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes marquee {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .animate-marquee-text {
+      animation: marquee 80s linear infinite;
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+    }
+    .animate-marquee-text:hover { animation-play-state: paused; }
+    .fade-in { animation: fadeIn 0.5s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    /* Global Reset for Focus Outline */
+    button:focus { outline: none; }
+  `}</style>
+);
+
+/**
  * MOCK DATA
  */
 const INITIAL_DATA = [
@@ -169,12 +195,17 @@ const formatDate = (dateString) => {
 };
 
 const formatTimeAgo = (dateString) => {
-  const diff = new Date() - new Date(dateString);
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  if (hours > 24) return formatDate(dateString);
-  if (hours > 0) return `${hours} jam yang lalu`;
-  return `${minutes} menit yang lalu`;
+  try {
+    const diff = new Date() - new Date(dateString);
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    if (isNaN(minutes)) return "Baru saja";
+    if (hours > 24) return formatDate(dateString);
+    if (hours > 0) return `${hours} jam yang lalu`;
+    return `${minutes} menit yang lalu`;
+  } catch (e) {
+    return "Baru saja";
+  }
 };
 
 /**
@@ -239,9 +270,9 @@ const Ticker = ({ articles }) => {
   const trendingNews = articles
     ? articles
         .filter(a => a.status === 'published')
-        .sort((a, b) => b.views - a.views)
+        .sort((a, b) => (b.views || 0) - (a.views || 0)) // Guard for undefined views
         .slice(0, 5)
-        .map(a => `${a.title.toUpperCase()} (${a.views.toLocaleString()} pembaca)`)
+        .map(a => `${a.title.toUpperCase()} (${(a.views || 0).toLocaleString()} pembaca)`) // Guard for undefined views
         .join("  •  ")
     : "Memuat berita terkini...";
 
@@ -279,7 +310,7 @@ const HomeView = ({ activeCategory, filteredArticles, articles, onArticleClick, 
   return (
     <main className="container mx-auto px-4 py-4 max-w-5xl min-h-screen">
       
-      {/* NAVIGATION MENU (Sticky) - Added outline-none */}
+      {/* NAVIGATION MENU */}
       <div className="sticky top-14 z-40 bg-white/95 backdrop-blur border-b border-gray-200 mb-6 -mx-4 px-4 md:-mx-0 md:px-0 shadow-sm transition-all">
          <div className="flex items-center gap-4 md:gap-8 overflow-x-auto py-3 hide-scrollbar max-w-5xl mx-auto">
            {CATEGORIES.map(cat => (
@@ -298,7 +329,7 @@ const HomeView = ({ activeCategory, filteredArticles, articles, onArticleClick, 
          </div>
       </div>
 
-      {/* HERO CAROUSEL - SIZE REDUCED (h-56 mobile, h-96 desktop) */}
+      {/* HERO CAROUSEL */}
       {showHeroAndLive && activeArticle && (
         <div className="mb-8 relative group">
           <div className="relative h-56 md:h-96 rounded-2xl overflow-hidden shadow-xl cursor-pointer" onClick={() => onArticleClick(activeArticle)}>
@@ -419,7 +450,7 @@ const HomeView = ({ activeCategory, filteredArticles, articles, onArticleClick, 
               TERPOPULER
             </h3>
             <div className="flex flex-col gap-5">
-              {articles.filter(a => a.status === 'published').slice().sort((a,b) => b.views - a.views).slice(0, 5).map((item, idx) => (
+              {articles.filter(a => a.status === 'published').slice().sort((a,b) => (b.views || 0) - (a.views || 0)).slice(0, 5).map((item, idx) => (
                 <div key={item.id} onClick={() => onArticleClick(item)} className="flex items-start gap-4 cursor-pointer group">
                   <span className="text-3xl font-black text-gray-200 leading-none -mt-1 font-serif italic w-6 text-center">{idx + 1}</span>
                   <div>
@@ -427,7 +458,7 @@ const HomeView = ({ activeCategory, filteredArticles, articles, onArticleClick, 
                       {item.title}
                     </h4>
                     <span className="text-xs text-gray-400 mt-1.5 block flex items-center gap-1">
-                      <Eye size={12} /> {item.views.toLocaleString()} pembaca
+                      <Eye size={12} /> {(item.views || 0).toLocaleString()} pembaca
                     </span>
                   </div>
                 </div>
@@ -440,9 +471,7 @@ const HomeView = ({ activeCategory, filteredArticles, articles, onArticleClick, 
   );
 };
 
-// ... Rest of components (ArticleView, AdminList, AdminEditor, AdminPreview, AdminView, LoginView) remain unchanged from the previous robust version ...
-// To ensure the file is complete for copy-pasting, I include them below.
-
+// ... (ArticleView remains same) ...
 const ArticleView = ({ article, onBack }) => {
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
@@ -556,6 +585,7 @@ const ArticleView = ({ article, onBack }) => {
   );
 };
 
+// ... (AdminList remains same) ...
 const AdminList = ({ articles, onCreate, onEdit, onDelete, searchQuery, setSearchQuery, filterStatus, setFilterStatus }) => {
   const filtered = articles.filter(a => 
     a.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
@@ -566,10 +596,10 @@ const AdminList = ({ articles, onCreate, onEdit, onDelete, searchQuery, setSearc
     <div className="space-y-6 animate-in fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Daftar Artikel</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Daftar Artikel</h2>
           <p className="text-gray-500 text-sm">Kelola semua konten berita Anda di sini.</p>
         </div>
-        <button onClick={onCreate} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 border-none transition shadow-sm outline-none focus:outline-none">
+        <button onClick={onCreate} className="bg-blue-600 text-white px-3 py-1.5 text-sm md:text-base md:px-4 md:py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 border-none transition shadow-sm outline-none focus:outline-none">
           <PlusCircle size={18} /> Buat Baru
         </button>
       </div>
@@ -587,37 +617,39 @@ const AdminList = ({ articles, onCreate, onEdit, onDelete, searchQuery, setSearc
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase">Artikel</th>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase w-32">Status</th>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase w-32">Kategori</th>
-              <th className="p-4 text-xs font-bold text-gray-500 uppercase w-32 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filtered.map(a => (
-              <tr key={a.id} className="hover:bg-gray-50 transition-colors">
-                <td className="p-4">
-                  <p className="font-medium text-gray-900 line-clamp-1">{a.title}</p>
-                  <p className="text-xs text-gray-500">{new Date(a.date).toLocaleDateString('id-ID')}</p>
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded text-xs font-bold ${a.status==='published'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-600'}`}>
-                    {a.status === 'published' ? 'Terbit' : 'Draft'}
-                  </span>
-                </td>
-                <td className="p-4 text-sm text-gray-600">{a.category}</td>
-                <td className="p-4 text-right flex justify-end gap-2">
-                  <button onClick={() => onEdit(a, true)} className="p-1.5 text-gray-400 hover:text-blue-600 border-none bg-transparent outline-none focus:outline-none" title="Preview"><Eye size={18}/></button>
-                  <button onClick={() => onEdit(a, false)} className="p-1.5 text-gray-400 hover:text-orange-600 border-none bg-transparent outline-none focus:outline-none" title="Edit"><Edit3 size={18}/></button>
-                  <button onClick={() => onDelete(a.id)} className="p-1.5 text-gray-400 hover:text-red-600 border-none bg-transparent outline-none focus:outline-none" title="Hapus"><Trash2 size={18}/></button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase">Artikel</th>
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase w-32">Status</th>
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase w-32">Kategori</th>
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase w-32 text-right">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map(a => (
+                <tr key={a.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4">
+                    <p className="font-medium text-gray-900 line-clamp-1">{a.title}</p>
+                    <p className="text-xs text-gray-500">{new Date(a.date).toLocaleDateString('id-ID')}</p>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${a.status==='published'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-600'}`}>
+                      {a.status === 'published' ? 'Terbit' : 'Draft'}
+                    </span>
+                  </td>
+                  <td className="p-4 text-sm text-gray-600">{a.category}</td>
+                  <td className="p-4 text-right flex justify-end gap-2">
+                    <button onClick={() => onEdit(a, true)} className="p-1.5 text-gray-400 hover:text-blue-600 border-none bg-transparent outline-none focus:outline-none" title="Preview"><Eye size={18}/></button>
+                    <button onClick={() => onEdit(a, false)} className="p-1.5 text-gray-400 hover:text-orange-600 border-none bg-transparent outline-none focus:outline-none" title="Edit"><Edit3 size={18}/></button>
+                    <button onClick={() => onDelete(a.id)} className="p-1.5 text-gray-400 hover:text-red-600 border-none bg-transparent outline-none focus:outline-none" title="Hapus"><Trash2 size={18}/></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -657,12 +689,12 @@ const AdminEditor = ({ articleForm, setArticleForm, editingId, onSave, onBack, o
       <div className="flex justify-between items-center mb-6 sticky top-0 bg-gray-50 z-10 py-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <button onClick={onBack} className="text-gray-500 hover:text-gray-800 border-none bg-transparent outline-none focus:outline-none"><ChevronLeft/></button>
-          <h2 className="text-xl font-bold text-gray-800">{editingId ? 'Edit Artikel' : 'Tulis Artikel Baru'}</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">{editingId ? 'Edit Artikel' : 'Tulis Artikel Baru'}</h2>
         </div>
         <div className="flex gap-2">
-          <button onClick={onPreview} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium border-none bg-transparent transition outline-none focus:outline-none">Preview</button>
-          <button onClick={() => onSave('draft')} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-white bg-transparent transition outline-none focus:outline-none">Simpan Draft</button>
-          <button onClick={() => onSave('published')} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 border-none flex items-center gap-2 transition shadow-sm outline-none focus:outline-none">
+          <button onClick={onPreview} className="px-2 py-1.5 text-xs md:px-4 md:py-2 md:text-sm text-gray-600 hover:bg-gray-200 rounded-lg font-medium border-none bg-transparent transition outline-none focus:outline-none">Preview</button>
+          <button onClick={() => onSave('draft')} className="px-2 py-1.5 text-xs md:px-4 md:py-2 md:text-sm border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-white bg-transparent transition outline-none focus:outline-none">Simpan Draft</button>
+          <button onClick={() => onSave('published')} className="px-2 py-1.5 text-xs md:px-4 md:py-2 md:text-sm bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 border-none flex items-center gap-2 transition shadow-sm outline-none focus:outline-none">
             <Send size={16}/> Terbitkan
           </button>
         </div>
@@ -830,19 +862,26 @@ const AdminView = ({ articles, setArticles, onLogout }) => {
   const handleSave = (status) => {
     if(!articleForm.title || !articleForm.category) { alert("Judul dan Kategori wajib diisi"); return; }
     
-    const newArticle = {
+    // Create base object from form
+    const baseArticle = {
       ...articleForm,
       status: status,
-      id: editingId || Date.now(),
-      date: new Date().toISOString(),
-      author: "Redaksi",
       slug: articleForm.title.toLowerCase().replace(/\s+/g, '-'),
       image: articleForm.image || "https://placehold.co/600x400?text=No+Image"
     };
 
     if (editingId) {
-      setArticles(articles.map(a => a.id === editingId ? newArticle : a));
+      // Update existing: merge with existing article to preserve views, ID, etc.
+      setArticles(articles.map(a => a.id === editingId ? { ...a, ...baseArticle } : a));
     } else {
+      // Create new: initialize ID, date, views
+      const newArticle = {
+        ...baseArticle,
+        id: Date.now(),
+        date: new Date().toISOString(),
+        author: "Redaksi",
+        views: 0 // Initialize views to 0 to prevent crashes
+      };
       setArticles([newArticle, ...articles]);
     }
     setSubView("list");
@@ -984,6 +1023,7 @@ export default function App() {
 
   return (
     <div className="font-sans text-gray-900 bg-white min-h-screen">
+      <GlobalStyles />
       {view !== 'login' && view !== 'admin' && (
         <>
           <Navbar 
