@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Custom Styles --- */
+
+/* Menyembunyikan Scrollbar tapi tetap bisa di-scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Animasi Running Text (Marquee) */
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee-text {
+  animation: marquee 80s linear infinite; /* Durasi 80 detik agar tidak terlalu cepat */
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+}
+
+.animate-marquee-text:hover {
+  animation-play-state: paused; /* Berhenti saat di-hover mouse */
+}
+
+/* Animasi Fade In sederhana */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Menghilangkan kotak outline hitam saat tombol diklik (Focus Ring) */
+button:focus {
+  outline: none;
+}
